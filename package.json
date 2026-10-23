@@ -3,12 +3,19 @@
   "version": "1.0.0",
   "description": "OttoPersona AI — Context-Aware Communication Assistant",
   "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
   "scripts": {
+    "dev": "npm --prefix client run dev",
+    "dev:client": "npm --prefix client run dev",
+    "dev:server": "npm --prefix server run dev",
     "build": "npm --prefix client run build",
     "test": "npm --prefix server test",
     "start": "npm --prefix server start",
+    "install:all": "npm install --prefix client && npm install --prefix server",
     "client:dev": "npm --prefix client run dev",
     "server:dev": "npm --prefix server run dev"
   }
 }
-

@@ -93,7 +93,11 @@ export async function transformMessage({ message, audience, purpose, tone, lengt
     throw error;
   }
 
-  const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  let modelName = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
+  // Automatically migrate deprecated models (e.g., gemini-2.5-flash, gemini-2.0-flash) to modern Gemini 3.5/3.8
+  if (modelName.startsWith('gemini-2.') || modelName.startsWith('gemini-1.')) {
+    modelName = 'gemini-3.5-flash-lite';
+  }
 
   const userPrompt = `Transform the following user message according to these specific parameters:
 - Target Audience: ${audience}
@@ -117,36 +121,59 @@ ${message}
     throw error;
   }
 
-  try {
-    const response = await ai.models.generateContent({
-      model: modelName,
-      contents: userPrompt,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            rewrittenMessage: {
-              type: Type.STRING,
-              description: 'The rewritten message adapted for the specified audience, tone, format, and length without inventing facts.'
-            },
-            explanation: {
-              type: Type.STRING,
-              description: 'A brief explanation of how the tone and structure were adjusted.'
-            },
-            improvements: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.STRING
-              },
-              description: 'List of specific improvements made to the message.'
-            }
+  const generationConfig = {
+    systemInstruction: SYSTEM_INSTRUCTION,
+    responseMimeType: 'application/json',
+    responseSchema: {
+      type: Type.OBJECT,
+      properties: {
+        rewrittenMessage: {
+          type: Type.STRING,
+          description: 'The rewritten message adapted for the specified audience, tone, format, and length without inventing facts.'
+        },
+        explanation: {
+          type: Type.STRING,
+          description: 'A brief explanation of how the tone and structure were adjusted.'
+        },
+        improvements: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.STRING
           },
-          required: ['rewrittenMessage', 'explanation', 'improvements']
+          description: 'List of specific improvements made to the message.'
         }
+      },
+      required: ['rewrittenMessage', 'explanation', 'improvements']
+    }
+  };
+
+  try {
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model: modelName,
+        contents: userPrompt,
+        config: generationConfig
+      });
+    } catch (primaryErr) {
+      const primaryMsg = (primaryErr.message || '').toLowerCase();
+      // If primary model is unavailable (503 high demand spike) or not found (404), attempt resilient fallback
+      const isRetriable = primaryErr.status === 503 || primaryErr.status === 404 || primaryMsg.includes('unavailable') || primaryMsg.includes('high demand') || primaryMsg.includes('not found') || primaryMsg.includes('no longer available');
+      const fallbackModel = modelName === 'gemini-3.5-flash-lite' ? 'gemini-3.8-flash' : 'gemini-3.5-flash-lite';
+
+      if (isRetriable) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn(`[OttoPersona AI] Model ${modelName} returned status ${primaryErr.status}. Failing over to resilient fallback model: ${fallbackModel}`);
+        }
+        response = await ai.models.generateContent({
+          model: fallbackModel,
+          contents: userPrompt,
+          config: generationConfig
+        });
+      } else {
+        throw primaryErr;
       }
-    });
+    }
 
     const responseText = response?.text;
     if (!responseText) {
@@ -207,6 +234,10 @@ ${message}
       error.statusCode = 504;
       error.isOperational = true;
       throw error;
+    }
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('[OttoPersona AI Error]', err.message || err);
     }
 
     const error = new Error('The AI service is temporarily unavailable. Your original message is still available. Please try again.');

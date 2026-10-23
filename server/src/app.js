@@ -2,6 +2,9 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
 import healthRoutes from './routes/health.js';
 import transformRoutes from './routes/transform.js';
 import adminRoutes from './routes/admin.js';
@@ -9,6 +12,9 @@ import { generalLimiter } from './middleware/rateLimiter.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 const app = express();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Disable X-Powered-By to prevent fingerprinting
 app.disable('x-powered-by');
@@ -19,7 +25,8 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       imgSrc: ["'self'", 'data:', 'https:'],
       connectSrc: ["'self'"]
     }
@@ -29,9 +36,13 @@ app.use(helmet({
 }));
 
 // 2. CORS Configuration
-const allowedOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
+const defaultOrigins = ['http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'];
+const envOrigins = (process.env.CLIENT_ORIGIN || '')
   .split(',')
-  .map(o => o.trim());
+  .map(o => o.trim())
+  .filter(Boolean);
+
+const allowedOrigins = Array.from(new Set([...defaultOrigins, ...envOrigins]));
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -53,13 +64,6 @@ app.use(express.json({ limit: '50kb' }));
 
 // 4. General Rate Limiter for all routes
 app.use(generalLimiter);
-
-import path from 'path';
-import { fileURLToPath } from 'url';
-import fs from 'fs';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // 5. Mount API Routes
 app.use('/api/health', healthRoutes);
