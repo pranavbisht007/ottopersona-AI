@@ -1,3 +1,15 @@
+# Environment files
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Ignore env files inside folders
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.sample
+
 # Dependencies
 node_modules/
 package-lock.json
@@ -29,7 +41,4 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Compatibility junctions
-/server
-/client
 

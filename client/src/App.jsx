@@ -1,0 +1,347 @@
+import React, { useState, useRef, useEffect } from 'react';
+import Navbar from './blocks/navigation-block/Navbar';
+import Footer from './blocks/navigation-block/Footer';
+import Hero from './blocks/hero-block/Hero';
+import MessageInput from './blocks/input-block/MessageInput';
+import AudienceSelector from './blocks/selectors-block/AudienceSelector';
+import PurposeSelector from './blocks/selectors-block/PurposeSelector';
+import ToneSelector from './blocks/selectors-block/ToneSelector';
+import LengthSelector from './blocks/selectors-block/LengthSelector';
+import FormatSelector from './blocks/selectors-block/FormatSelector';
+import LanguageSelector from './blocks/selectors-block/LanguageSelector';
+import ResultPanel from './blocks/results-block/ResultPanel';
+import LoadingState from './blocks/feedback-block/LoadingState';
+import ErrorMessage from './blocks/feedback-block/ErrorMessage';
+import PrivacyPolicyModal from './blocks/modals-block/PrivacyPolicyModal';
+import TermsModal from './blocks/modals-block/TermsModal';
+import AdminDiagnosticsModal from './blocks/modals-block/AdminDiagnosticsModal';
+
+export default function App() {
+  // Theme state
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('ottopersona_theme') || 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('ottopersona_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
+
+  // Form input state with sensible defaults
+  const [message, setMessage] = useState('');
+  const [audience, setAudience] = useState('General audience');
+  const [purpose, setPurpose] = useState('General communication');
+  const [tone, setTone] = useState('Professional');
+  const [length, setLength] = useState('Medium');
+  const [format, setFormat] = useState('General text message');
+  const [language, setLanguage] = useState('Auto-detect');
+
+  // Application flow state
+  const [isLoading, setIsLoading] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [resultData, setResultData] = useState(null);
+  const [error, setError] = useState(null);
+
+  // Snapshot of parameters used for the current result
+  const [appliedParams, setAppliedParams] = useState(null);
+
+  // Modals state
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
+
+  const inputRef = useRef(null);
+
+  const focusInput = () => {
+    if (inputRef.current) {
+      inputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      inputRef.current.focus();
+    }
+  };
+
+  const handleApplyPreset = (preset) => {
+    setMessage(preset.message);
+    if (preset.audience) setAudience(preset.audience);
+    if (preset.purpose) setPurpose(preset.purpose);
+    if (preset.tone) setTone(preset.tone);
+    if (preset.length) setLength(preset.length);
+    if (preset.format) setFormat(preset.format);
+    if (preset.language) setLanguage(preset.language);
+    setError(null);
+  };
+
+  const handleClear = () => {
+    if (isLoading || isRegenerating) return;
+    setMessage('');
+    setResultData(null);
+    setError(null);
+    setAppliedParams(null);
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  };
+
+  const executeTransformation = async (isRegen = false) => {
+    const trimmed = message.trim();
+    if (!trimmed) {
+      setError({
+        code: 'VALIDATION_ERROR',
+        message: 'Please enter a message before transforming it.'
+      });
+      focusInput();
+      return;
+    }
+
+    if (trimmed.length > 5000) {
+      setError({
+        code: 'MESSAGE_TOO_LONG',
+        message: 'Your message is too long. Please shorten it to under 5,000 characters.'
+      });
+      return;
+    }
+
+    if (isRegen) {
+      setIsRegenerating(true);
+    } else {
+      setIsLoading(true);
+    }
+    setError(null);
+
+    const payload = {
+      message: trimmed,
+      audience,
+      purpose,
+      tone,
+      length,
+      format,
+      language
+    };
+
+    try {
+      let response;
+      try {
+        response = await fetch('/api/transform', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+      } catch (proxyErr) {
+        // Fallback: If relative /api/transform fails (e.g. proxy bypassed or running on direct port), try direct backend call
+        const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (isLocalHost && window.location.port !== '5000') {
+          try {
+            response = await fetch('http://localhost:5000/api/transform', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(payload)
+            });
+          } catch (directErr) {
+            throw new Error('Could not connect to backend server. Please ensure the backend is running on port 5000 (run: npm run dev:backend).');
+          }
+        } else {
+          throw new Error('Network connection failed. Please check your network connection or verify that the backend server is running.');
+        }
+      }
+
+      let data;
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        const err = new Error(text || `Server returned status ${response.status}`);
+        err.code = `SERVER_ERROR_${response.status}`;
+        throw err;
+      }
+
+      if (!response.ok || !data.success) {
+        const err = new Error(data.error?.message || 'Failed to transform message.');
+        err.code = data.error?.code || 'TRANSFORMATION_ERROR';
+        throw err;
+      }
+
+      setResultData(data.data);
+      setAppliedParams({ ...payload });
+    } catch (err) {
+      setError({
+        code: err.code || 'TRANSFORMATION_ERROR',
+        message: err.message || 'The AI service is temporarily unavailable. Please try again.'
+      });
+    } finally {
+      setIsLoading(false);
+      setIsRegenerating(false);
+    }
+  };
+
+  return (
+    <div className="app-page-wrapper">
+      <div className="app-canvas">
+        <Navbar
+          theme={theme}
+          toggleTheme={toggleTheme}
+          openPrivacy={() => setPrivacyOpen(true)}
+          openTerms={() => setTermsOpen(true)}
+          openAdmin={() => setAdminOpen(true)}
+          onFocusInput={focusInput}
+        />
+
+        <main className="main-content">
+          <Hero onFocusInput={focusInput} />
+
+          {/* Dual-Section Workspace Card matching the reference visual style */}
+          <section className="workspace-card" aria-label="Transformation Workspace">
+            {/* Top Workspace Stage: Message Input & Voice Hub */}
+            <div className="workspace-top-stage">
+              <MessageInput
+                message={message}
+                setMessage={setMessage}
+                onApplyPreset={handleApplyPreset}
+                inputRef={inputRef}
+                maxLength={5000}
+                disabled={isLoading || isRegenerating}
+                language={language}
+                onVoiceTransform={() => executeTransformation(false)}
+                onVoiceClear={handleClear}
+              />
+            </div>
+
+            {/* Bottom Dark Stage: Context Parameters matching reference's dark list card */}
+            <div className="workspace-bottom-stage">
+              <div className="stage-header">
+                <div className="stage-title-group">
+                  <span className="stage-pill">Context Engine</span>
+                  <h3 className="stage-title">Select Communication Parameters</h3>
+                </div>
+                <span className="stage-subtitle">Preserves certainty and commitments without adding invented excuses.</span>
+              </div>
+
+              <div className="selectors-grid">
+                <AudienceSelector
+                  value={audience}
+                  onChange={setAudience}
+                  disabled={isLoading || isRegenerating}
+                />
+                <PurposeSelector
+                  value={purpose}
+                  onChange={setPurpose}
+                  disabled={isLoading || isRegenerating}
+                />
+                <ToneSelector
+                  value={tone}
+                  onChange={setTone}
+                  disabled={isLoading || isRegenerating}
+                />
+                <LengthSelector
+                  value={length}
+                  onChange={setLength}
+                  disabled={isLoading || isRegenerating}
+                />
+                <FormatSelector
+                  value={format}
+                  onChange={setFormat}
+                  disabled={isLoading || isRegenerating}
+                />
+                <LanguageSelector
+                  value={language}
+                  onChange={setLanguage}
+                  disabled={isLoading || isRegenerating}
+                />
+              </div>
+
+              {/* Action Toolbar with Clear & Glowing Violet Pill CTA */}
+              <div className="action-toolbar">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={handleClear}
+                  disabled={isLoading || isRegenerating || (!message && !resultData)}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                  <span>Clear</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-primary-pill"
+                  onClick={() => executeTransformation(false)}
+                  disabled={isLoading || isRegenerating || !message.trim()}
+                >
+                  <span>{isLoading ? 'Transforming Message...' : 'Transform Message'}</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {isLoading && <LoadingState />}
+
+          <ErrorMessage error={error} onDismiss={() => setError(null)} />
+
+          {resultData && appliedParams && !isLoading && (
+            <ResultPanel
+              originalMessage={appliedParams.message}
+              resultData={resultData}
+              selectedParams={appliedParams}
+              onRegenerate={() => executeTransformation(true)}
+              isRegenerating={isRegenerating}
+            />
+          )}
+
+          {/* Stats Bar matching bottom metrics in reference image */}
+          <section className="stats-strip" aria-label="Key system metrics">
+            <div className="stat-card">
+              <span className="stat-value">100%</span>
+              <span className="stat-label">Meaning Preserved</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-value">6+</span>
+              <span className="stat-label">Context Personas</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-value">0ms</span>
+              <span className="stat-label">Server Data Storage</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-value">5.0★</span>
+              <span className="stat-label">AI Satisfaction</span>
+            </div>
+          </section>
+        </main>
+
+        <Footer
+          openPrivacy={() => setPrivacyOpen(true)}
+          openTerms={() => setTermsOpen(true)}
+        />
+      </div>
+
+      <PrivacyPolicyModal
+        isOpen={privacyOpen}
+        onClose={() => setPrivacyOpen(false)}
+      />
+
+      <TermsModal
+        isOpen={termsOpen}
+        onClose={() => setTermsOpen(false)}
+      />
+
+      <AdminDiagnosticsModal
+        isOpen={adminOpen}
+        onClose={() => setAdminOpen(false)}
+      />
+    </div>
+  );
+}
