@@ -28,7 +28,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       imgSrc: ["'self'", 'data:', 'https:'],
-      connectSrc: ["'self'"]
+      connectSrc: ["'self'", 'http://localhost:*', 'http://127.0.0.1:*', 'ws://localhost:*', 'ws://127.0.0.1:*']
     }
   },
   crossOriginEmbedderPolicy: false,
@@ -36,7 +36,20 @@ app.use(helmet({
 }));
 
 // 2. CORS Configuration
-const defaultOrigins = ['http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'];
+const defaultOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:3000',
+  'http://localhost:4173',
+  'http://localhost:5000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
+  'http://127.0.0.1:5175',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:4173',
+  'http://127.0.0.1:5000'
+];
 const envOrigins = (process.env.CLIENT_ORIGIN || '')
   .split(',')
   .map(o => o.trim())
@@ -44,11 +57,15 @@ const envOrigins = (process.env.CLIENT_ORIGIN || '')
 
 const allowedOrigins = Array.from(new Set([...defaultOrigins, ...envOrigins]));
 
+const isLocalOrigin = (origin) => {
+  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+};
+
 app.use(cors({
   origin: (origin, callback) => {
     // Allow non-browser requests (e.g. curl, unit tests, mobile native) with no origin
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+    if (isLocalOrigin(origin) || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
       return callback(null, true);
     }
     return callback(new Error(`Origin ${origin} not allowed by CORS.`));

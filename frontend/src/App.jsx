@@ -122,13 +122,34 @@ export default function App() {
     };
 
     try {
-      const response = await fetch('/api/transform', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
+      let response;
+      try {
+        response = await fetch('/api/transform', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+      } catch (proxyErr) {
+        // Fallback: If relative /api/transform fails (e.g. proxy bypassed or running on direct port), try direct backend call
+        const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (isLocalHost && window.location.port !== '5000') {
+          try {
+            response = await fetch('http://localhost:5000/api/transform', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(payload)
+            });
+          } catch (directErr) {
+            throw new Error('Could not connect to backend server. Please ensure the backend is running on port 5000 (run: npm run dev:backend).');
+          }
+        } else {
+          throw new Error('Network connection failed. Please check your network connection or verify that the backend server is running.');
+        }
+      }
 
       const data = await response.json();
 
