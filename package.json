@@ -1,0 +1,13 @@
+{
+  "name": "ottopersona-ai-workspace",
+  "version": "1.0.0",
+  "description": "OttoPersona AI — Context-Aware Communication Assistant",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix client run build",
+    "test": "npm --prefix server test",
+    "start": "npm --prefix server start",
+    "client:dev": "npm --prefix client run dev",
+    "server:dev": "npm --prefix server run dev"
+  }
+}
