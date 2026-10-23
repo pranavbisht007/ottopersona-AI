@@ -166,6 +166,8 @@ export default function App() {
             inputRef={inputRef}
             maxLength={5000}
             disabled={isLoading || isRegenerating}
+            onVoiceTransform={() => executeTransformation(false)}
+            onVoiceClear={handleClear}
           />
 
           <div className="selectors-grid">
