@@ -1,8 +1,41 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-const CATEGORIES = ['All', '💼 Work', '🎓 College', '🤝 Personal', '🇮🇳 हिंदी'];
+const CATEGORIES = ['All', '💼 Work', '⚖️ Legal & HR', '🎓 College', '🤝 Personal', '🇮🇳 हिंदी'];
 
 const PRESET_EXAMPLES = [
+  {
+    category: '⚖️ Legal & HR',
+    label: 'Contract Clause Review',
+    message: 'Please review the updated terms in section 4 before execution. All confidentiality and IP ownership clauses remain as previously negotiated without alteration.',
+    audience: 'Client',
+    purpose: 'Follow-up',
+    tone: 'Formal',
+    length: 'Medium',
+    format: 'Email',
+    language: 'English'
+  },
+  {
+    category: '⚖️ Legal & HR',
+    label: 'Medical Leave (Compliance)',
+    message: 'I am formally requesting sick leave from Monday to Wednesday due to personal health reasons. A certified medical note is attached per statutory company policy.',
+    audience: 'HR / Recruiter',
+    purpose: 'Request',
+    tone: 'Respectful',
+    length: 'Short',
+    format: 'Email',
+    language: 'English'
+  },
+  {
+    category: '⚖️ Legal & HR',
+    label: 'NDA Confidentiality Notice',
+    message: 'Please treat the attached proprietary system designs as strictly confidential in accordance with our Non-Disclosure Agreement executed earlier this year.',
+    audience: 'Colleague',
+    purpose: 'General communication',
+    tone: 'Formal',
+    length: 'Short',
+    format: 'Email',
+    language: 'English'
+  },
   {
     category: '🎓 College',
     label: 'Teacher Request',

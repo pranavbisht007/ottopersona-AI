@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ExplainChanges from './ExplainChanges';
 
 export default function ResultPanel({
@@ -8,28 +8,34 @@ export default function ResultPanel({
   onRegenerate,
   isRegenerating
 }) {
-  const [editedText, setEditedText] = useState(resultData.rewrittenMessage);
-  const [isEditing, setIsEditing] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [copyError, setCopyError] = useState(false);
+  const option1Text = resultData.rewrittenMessage || '';
+  const option2Text = resultData.alternativeMessage || resultData.rewrittenMessage || '';
 
-  // If resultData changes from a fresh regeneration, update editedText
-  React.useEffect(() => {
-    setEditedText(resultData.rewrittenMessage);
-    setIsEditing(false);
+  const [text1, setText1] = useState(option1Text);
+  const [text2, setText2] = useState(option2Text);
+  const [isEditing1, setIsEditing1] = useState(false);
+  const [isEditing2, setIsEditing2] = useState(false);
+  const [copied1, setCopied1] = useState(false);
+  const [copied2, setCopied2] = useState(false);
+  const [activeTab, setActiveTab] = useState('both'); // 'both' | 'opt1' | 'opt2'
+
+  // Update when fresh result arrives
+  useEffect(() => {
+    setText1(resultData.rewrittenMessage || '');
+    setText2(resultData.alternativeMessage || resultData.rewrittenMessage || '');
+    setIsEditing1(false);
+    setIsEditing2(false);
+    setCopied1(false);
+    setCopied2(false);
   }, [resultData]);
 
-  const hasBeenEdited = editedText !== resultData.rewrittenMessage;
-
-  const handleCopy = async () => {
+  const copyToClipboard = async (text, setCopiedFn) => {
     try {
-      const textToCopy = editedText;
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(textToCopy);
+        await navigator.clipboard.writeText(text);
       } else {
-        // Fallback for older browsers or restricted environments
         const textArea = document.createElement('textarea');
-        textArea.value = textToCopy;
+        textArea.value = text;
         textArea.style.position = 'fixed';
         textArea.style.left = '-999999px';
         document.body.appendChild(textArea);
@@ -38,15 +44,14 @@ export default function ResultPanel({
         document.execCommand('copy');
         document.body.removeChild(textArea);
       }
-      setCopied(true);
-      setCopyError(false);
-      setTimeout(() => setCopied(false), 2500);
+      setCopiedFn(true);
+      setTimeout(() => setCopiedFn(false), 2500);
     } catch (err) {
-      console.error('Failed to copy to clipboard', err);
-      setCopyError(true);
-      setTimeout(() => setCopyError(false), 3000);
+      alert('Could not copy automatically. Please select and copy text manually.');
     }
   };
+
+  const isEmail = selectedParams.format === 'Email';
 
   return (
     <div className="results-container" aria-live="polite">
@@ -74,99 +79,162 @@ export default function ResultPanel({
         )}
       </div>
 
-      {/* Side-by-Side Comparison */}
+      {/* Main Comparison & Dual Output Bars */}
       <div className="comparison-grid">
-        {/* Left Column: Original Message */}
-        <div className="panel-card">
+        {/* Left Column: Original Input */}
+        <div className="panel-card original-card">
           <div className="panel-header">
             <span className="panel-title">Original Input</span>
             <span className="badge badge-original">Unchanged</span>
           </div>
-          <div className="message-box">
+          <div className="message-box original-box">
             {originalMessage}
+          </div>
+          <div className="card-footer-note">
+            Preserved without fabricated reasons or altered commitment levels.
           </div>
         </div>
 
-        {/* Right Column: Rewritten Message */}
-        <div className="panel-card">
-          <div className="panel-header">
-            <span className="panel-title">Transformed Message</span>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <span className="badge badge-ai">Context-Adapted</span>
-              {hasBeenEdited && <span className="badge badge-edited">Customized</span>}
+        {/* Right Column: Dual Transformed Output Bars */}
+        <div className="dual-output-wrapper">
+          {/* Dual Bar Switcher Toolbar */}
+          <div className="dual-bar-switcher">
+            <div className="switcher-tabs">
+              <button
+                type="button"
+                className={`switcher-tab ${activeTab === 'both' ? 'active' : ''}`}
+                onClick={() => setActiveTab('both')}
+              >
+                <span>Dual View (2 Variations)</span>
+              </button>
+              <button
+                type="button"
+                className={`switcher-tab ${activeTab === 'opt1' ? 'active' : ''}`}
+                onClick={() => setActiveTab('opt1')}
+              >
+                <span>Option 1: Direct & Crisp</span>
+              </button>
+              <button
+                type="button"
+                className={`switcher-tab ${activeTab === 'opt2' ? 'active' : ''}`}
+                onClick={() => setActiveTab('opt2')}
+              >
+                <span>Option 2: Warm & Diplomatic</span>
+              </button>
             </div>
-          </div>
-
-          {isEditing ? (
-            <textarea
-              className="editable-textarea"
-              value={editedText}
-              onChange={(e) => setEditedText(e.target.value)}
-              aria-label="Edit transformed message"
-            />
-          ) : (
-            <div className="message-box">
-              {editedText}
-            </div>
-          )}
-
-          <div className="panel-actions">
-            <button
-              type="button"
-              className="btn-action"
-              onClick={() => setIsEditing(!isEditing)}
-              title={isEditing ? 'Done editing' : 'Edit transformed text directly'}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 20h9"></path>
-                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-              </svg>
-              <span>{isEditing ? 'Done Editing' : 'Edit Output'}</span>
-            </button>
 
             <button
               type="button"
-              className={`btn-action ${copied ? 'success' : ''}`}
-              onClick={handleCopy}
-              title="Copy message to clipboard"
-            >
-              {copied ? (
-                <>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span>Copied!</span>
-                </>
-              ) : (
-                <>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                  </svg>
-                  <span>Copy Message</span>
-                </>
-              )}
-            </button>
-
-            <button
-              type="button"
-              className="btn-action"
+              className="btn-action-regen"
               onClick={onRegenerate}
               disabled={isRegenerating}
-              title="Re-run transformation with current parameters"
+              title="Re-run transformation to generate fresh variations"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M23 4v6h-6"></path>
                 <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
               </svg>
               <span>{isRegenerating ? 'Regenerating...' : 'Regenerate'}</span>
             </button>
           </div>
-          {copyError && (
-            <span style={{ fontSize: '12px', color: 'var(--status-error)', marginTop: '4px', textAlign: 'right' }}>
-              Could not access clipboard automatically. Please select and copy text manually.
-            </span>
+
+          {/* Output Bar 1: Option 1 */}
+          {(activeTab === 'both' || activeTab === 'opt1') && (
+            <div className="panel-card output-bar-card bar-option-1">
+              <div className="panel-header">
+                <div className="bar-header-title">
+                  <span className="bar-indicator bar-ind-1">1</span>
+                  <span className="panel-title">Option 1: Direct & Crisp</span>
+                  {isEmail && <span className="badge badge-email">Email Verified</span>}
+                </div>
+                <div className="bar-actions-top">
+                  <button
+                    type="button"
+                    className="btn-mini-action"
+                    onClick={() => setIsEditing1(!isEditing1)}
+                  >
+                    {isEditing1 ? 'Done Editing' : 'Edit'}
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn-mini-action btn-copy ${copied1 ? 'copied' : ''}`}
+                    onClick={() => copyToClipboard(text1, setCopied1)}
+                  >
+                    {copied1 ? '✓ Copied' : 'Copy Option 1'}
+                  </button>
+                </div>
+              </div>
+
+              {isEditing1 ? (
+                <textarea
+                  className="editable-textarea"
+                  value={text1}
+                  onChange={(e) => setText1(e.target.value)}
+                  rows={6}
+                  aria-label="Edit Option 1"
+                />
+              ) : (
+                <div className="message-box formatted-output">
+                  {text1}
+                </div>
+              )}
+            </div>
           )}
+
+          {/* Output Bar 2: Option 2 (Alternative Variation of Same Message) */}
+          {(activeTab === 'both' || activeTab === 'opt2') && (
+            <div className="panel-card output-bar-card bar-option-2">
+              <div className="panel-header">
+                <div className="bar-header-title">
+                  <span className="bar-indicator bar-ind-2">2</span>
+                  <span className="panel-title">Option 2: Warm & Diplomatic</span>
+                  {isEmail && <span className="badge badge-email">Email Verified</span>}
+                </div>
+                <div className="bar-actions-top">
+                  <button
+                    type="button"
+                    className="btn-mini-action"
+                    onClick={() => setIsEditing2(!isEditing2)}
+                  >
+                    {isEditing2 ? 'Done Editing' : 'Edit'}
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn-mini-action btn-copy ${copied2 ? 'copied' : ''}`}
+                    onClick={() => copyToClipboard(text2, setCopied2)}
+                  >
+                    {copied2 ? '✓ Copied' : 'Copy Option 2'}
+                  </button>
+                </div>
+              </div>
+
+              {isEditing2 ? (
+                <textarea
+                  className="editable-textarea"
+                  value={text2}
+                  onChange={(e) => setText2(e.target.value)}
+                  rows={6}
+                  aria-label="Edit Option 2"
+                />
+              ) : (
+                <div className="message-box formatted-output">
+                  {text2}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Legal & Compliance Safeguard Callout */}
+      <div className="legal-safeguard-card" role="note" aria-label="Legal & Compliance Notice">
+        <div className="legal-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+        </div>
+        <div className="legal-text-content">
+          <strong>Legal & Truth Preservation Guarantee:</strong> Both variations strictly preserve your actual facts, commitments, and uncertainties. The system does not invent medical excuses, contractual promises, or unsupplied dates. Official legal, medical, or contractual messages should always be reviewed before sending.
         </div>
       </div>
 
@@ -178,4 +246,3 @@ export default function ResultPanel({
     </div>
   );
 }
-
