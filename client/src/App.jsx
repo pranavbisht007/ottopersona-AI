@@ -146,105 +146,145 @@ export default function App() {
   };
 
   return (
-    <div className="app-container">
-      <Navbar
-        theme={theme}
-        toggleTheme={toggleTheme}
-        openPrivacy={() => setPrivacyOpen(true)}
-        openTerms={() => setTermsOpen(true)}
-        openAdmin={() => setAdminOpen(true)}
-      />
+    <div className="app-page-wrapper">
+      <div className="app-canvas">
+        <Navbar
+          theme={theme}
+          toggleTheme={toggleTheme}
+          openPrivacy={() => setPrivacyOpen(true)}
+          openTerms={() => setTermsOpen(true)}
+          openAdmin={() => setAdminOpen(true)}
+          onFocusInput={focusInput}
+        />
 
-      <main className="main-content">
-        <Hero onFocusInput={focusInput} />
+        <main className="main-content">
+          <Hero onFocusInput={focusInput} />
 
-        <section className="workspace-card" aria-label="Transformation Workspace">
-          <MessageInput
-            message={message}
-            setMessage={setMessage}
-            onApplyPreset={handleApplyPreset}
-            inputRef={inputRef}
-            maxLength={5000}
-            disabled={isLoading || isRegenerating}
-            onVoiceTransform={() => executeTransformation(false)}
-            onVoiceClear={handleClear}
-          />
+          {/* Dual-Section Workspace Card matching the reference visual style */}
+          <section className="workspace-card" aria-label="Transformation Workspace">
+            {/* Top Workspace Stage: Message Input & Voice Hub */}
+            <div className="workspace-top-stage">
+              <MessageInput
+                message={message}
+                setMessage={setMessage}
+                onApplyPreset={handleApplyPreset}
+                inputRef={inputRef}
+                maxLength={5000}
+                disabled={isLoading || isRegenerating}
+                onVoiceTransform={() => executeTransformation(false)}
+                onVoiceClear={handleClear}
+              />
+            </div>
 
-          <div className="selectors-grid">
-            <AudienceSelector
-              value={audience}
-              onChange={setAudience}
-              disabled={isLoading || isRegenerating}
+            {/* Bottom Dark Stage: Context Parameters matching reference's dark list card */}
+            <div className="workspace-bottom-stage">
+              <div className="stage-header">
+                <div className="stage-title-group">
+                  <span className="stage-pill">Context Engine</span>
+                  <h3 className="stage-title">Select Communication Parameters</h3>
+                </div>
+                <span className="stage-subtitle">Preserves certainty and commitments without adding invented excuses.</span>
+              </div>
+
+              <div className="selectors-grid">
+                <AudienceSelector
+                  value={audience}
+                  onChange={setAudience}
+                  disabled={isLoading || isRegenerating}
+                />
+                <PurposeSelector
+                  value={purpose}
+                  onChange={setPurpose}
+                  disabled={isLoading || isRegenerating}
+                />
+                <ToneSelector
+                  value={tone}
+                  onChange={setTone}
+                  disabled={isLoading || isRegenerating}
+                />
+                <LengthSelector
+                  value={length}
+                  onChange={setLength}
+                  disabled={isLoading || isRegenerating}
+                />
+                <FormatSelector
+                  value={format}
+                  onChange={setFormat}
+                  disabled={isLoading || isRegenerating}
+                />
+              </div>
+
+              {/* Action Toolbar with Clear & Glowing Violet Pill CTA */}
+              <div className="action-toolbar">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={handleClear}
+                  disabled={isLoading || isRegenerating || (!message && !resultData)}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                  <span>Clear</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-primary-pill"
+                  onClick={() => executeTransformation(false)}
+                  disabled={isLoading || isRegenerating || !message.trim()}
+                >
+                  <span>{isLoading ? 'Transforming Message...' : 'Transform Message'}</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {isLoading && <LoadingState />}
+
+          <ErrorMessage error={error} onDismiss={() => setError(null)} />
+
+          {resultData && appliedParams && !isLoading && (
+            <ResultPanel
+              originalMessage={appliedParams.message}
+              resultData={resultData}
+              selectedParams={appliedParams}
+              onRegenerate={() => executeTransformation(true)}
+              isRegenerating={isRegenerating}
             />
-            <PurposeSelector
-              value={purpose}
-              onChange={setPurpose}
-              disabled={isLoading || isRegenerating}
-            />
-            <ToneSelector
-              value={tone}
-              onChange={setTone}
-              disabled={isLoading || isRegenerating}
-            />
-            <LengthSelector
-              value={length}
-              onChange={setLength}
-              disabled={isLoading || isRegenerating}
-            />
-            <FormatSelector
-              value={format}
-              onChange={setFormat}
-              disabled={isLoading || isRegenerating}
-            />
-          </div>
+          )}
 
-          <div className="action-toolbar">
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={handleClear}
-              disabled={isLoading || isRegenerating || (!message && !resultData)}
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
-              <span>Clear</span>
-            </button>
+          {/* Stats Bar matching bottom metrics in reference image */}
+          <section className="stats-strip" aria-label="Key system metrics">
+            <div className="stat-card">
+              <span className="stat-value">100%</span>
+              <span className="stat-label">Meaning Preserved</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-value">6+</span>
+              <span className="stat-label">Context Personas</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-value">0ms</span>
+              <span className="stat-label">Server Data Storage</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-value">5.0★</span>
+              <span className="stat-label">AI Satisfaction</span>
+            </div>
+          </section>
+        </main>
 
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={() => executeTransformation(false)}
-              disabled={isLoading || isRegenerating || !message.trim()}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-              </svg>
-              <span>{isLoading ? 'Transforming Message...' : 'Transform Message'}</span>
-            </button>
-          </div>
-        </section>
-
-        {isLoading && <LoadingState />}
-
-        <ErrorMessage error={error} onDismiss={() => setError(null)} />
-
-        {resultData && appliedParams && !isLoading && (
-          <ResultPanel
-            originalMessage={appliedParams.message}
-            resultData={resultData}
-            selectedParams={appliedParams}
-            onRegenerate={() => executeTransformation(true)}
-            isRegenerating={isRegenerating}
-          />
-        )}
-      </main>
-
-      <Footer
-        openPrivacy={() => setPrivacyOpen(true)}
-        openTerms={() => setTermsOpen(true)}
-      />
+        <Footer
+          openPrivacy={() => setPrivacyOpen(true)}
+          openTerms={() => setTermsOpen(true)}
+        />
+      </div>
 
       <PrivacyPolicyModal
         isOpen={privacyOpen}
@@ -263,4 +303,3 @@ export default function App() {
     </div>
   );
 }
-

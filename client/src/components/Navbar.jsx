@@ -5,72 +5,69 @@ export default function Navbar({
   toggleTheme,
   openPrivacy,
   openTerms,
-  openAdmin
+  openAdmin,
+  onFocusInput
 }) {
   return (
     <header className="navbar">
       <div className="navbar-inner">
+        {/* Brand Logo matching Pixgro style with sparkle mark */}
         <a href="#" className="brand" aria-label="OttoPersona AI Home">
           <div className="brand-icon" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07l14.14-14.14" />
             </svg>
           </div>
           <div className="brand-info">
-            <span className="brand-title">OttoPersona AI</span>
-            <span className="brand-tagline">AI Communication Assistant</span>
+            <span className="brand-title">OttoPersona<span className="brand-dot">.</span></span>
           </div>
         </a>
 
+        {/* Center Floating Pill Menu matching reference */}
+        <nav className="nav-pill-menu" aria-label="Main Navigation">
+          <a href="#" className="nav-pill-item active">Home</a>
+          <a href="#workspace" onClick={(e) => { e.preventDefault(); if (onFocusInput) onFocusInput(); }} className="nav-pill-item">Workspace</a>
+          <button type="button" onClick={openAdmin} className="nav-pill-item btn-link-nav">Diagnostics</button>
+          <button type="button" onClick={openPrivacy} className="nav-pill-item btn-link-nav">Privacy</button>
+        </nav>
+
+        {/* Right CTA Actions */}
         <div className="nav-actions">
           <button
             type="button"
-            className="nav-button"
-            onClick={openAdmin}
-            title="System & Security Diagnostics"
-            aria-label="System Diagnostics"
+            className="nav-theme-btn"
+            onClick={toggleTheme}
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-              <line x1="8" y1="21" x2="16" y2="21"></line>
-              <line x1="12" y1="17" x2="12" y2="21"></line>
-            </svg>
-            <span>Diagnostics</span>
+            {theme === 'dark' ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+              </svg>
+            )}
           </button>
 
           <button
             type="button"
-            className="nav-button"
-            onClick={toggleTheme}
-            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            className="nav-cta-pill"
+            onClick={openAdmin}
           >
-            {theme === 'dark' ? (
-              <>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="5"></circle>
-                  <line x1="12" y1="1" x2="12" y2="3"></line>
-                  <line x1="12" y1="21" x2="12" y2="23"></line>
-                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                  <line x1="1" y1="12" x2="3" y2="12"></line>
-                  <line x1="21" y1="12" x2="23" y2="12"></line>
-                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-                </svg>
-                <span>Light</span>
-              </>
-            ) : (
-              <>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-                </svg>
-                <span>Dark</span>
-              </>
-            )}
+            <span>Diagnostics</span>
           </button>
         </div>
       </div>
     </header>
   );
 }
-

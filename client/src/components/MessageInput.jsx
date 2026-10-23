@@ -38,7 +38,7 @@ const PRESET_EXAMPLES = [
     format: 'Email'
   },
   {
-    label: 'Apology',
+    label: 'Client Apology',
     message: 'Sorry for replying late, I was busy.',
     audience: 'Client',
     purpose: 'Apology',
@@ -66,12 +66,12 @@ export default function MessageInput({
   const charCount = message.length;
   const isNearLimit = charCount > maxLength * 0.9;
 
-  // Check if browser supports Web Speech API
+  // Web Speech API availability check
   const isSpeechSupported = typeof window !== 'undefined' && Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
 
   const startListening = () => {
     if (!isSpeechSupported) {
-      setVoiceError('Speech recognition is not supported in this browser. Please use Google Chrome, Microsoft Edge, or Safari.');
+      setVoiceError('Voice input is not supported in this browser. Please use Chrome, Edge, or Safari.');
       return;
     }
     if (disabled) return;
@@ -86,7 +86,7 @@ export default function MessageInput({
 
       recognition.onstart = () => {
         setIsListening(true);
-        setVoiceStatus('Listening... Speak your message now.');
+        setVoiceStatus('Listening... Speak your draft or say "Transform message"');
       };
 
       recognition.onresult = (event) => {
@@ -94,38 +94,33 @@ export default function MessageInput({
         let finalTranscript = '';
 
         for (let i = event.resultIndex; i < event.results.length; ++i) {
-          const transcriptChunk = event.results[i][0].transcript;
+          const chunk = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
-            finalTranscript += transcriptChunk;
+            finalTranscript += chunk;
           } else {
-            interimTranscript += transcriptChunk;
+            interimTranscript += chunk;
           }
         }
 
         const candidateCommand = (finalTranscript || interimTranscript).trim().toLowerCase();
 
-        // 1. Voice Command: Clear message
+        // Voice Command: Clear message
         if (candidateCommand === 'clear message' || candidateCommand === 'clear input' || candidateCommand === 'reset message' || candidateCommand === 'clear') {
-          if (onVoiceClear) {
-            onVoiceClear();
-          } else {
-            setMessage('');
-          }
-          setVoiceStatus('Voice Command: Cleared message.');
+          if (onVoiceClear) onVoiceClear();
+          else setMessage('');
+          setVoiceStatus('Voice command executed: Cleared message.');
           return;
         }
 
-        // 2. Voice Command: Transform / Submit message
+        // Voice Command: Transform / Send message
         if (candidateCommand === 'transform message' || candidateCommand === 'transform' || candidateCommand === 'submit message' || candidateCommand === 'send message') {
-          setVoiceStatus('Voice Command: Transforming message...');
+          setVoiceStatus('Voice command executed: Transforming message...');
           stopListening();
-          if (onVoiceTransform) {
-            onVoiceTransform();
-          }
+          if (onVoiceTransform) onVoiceTransform();
           return;
         }
 
-        // 3. Dictation: Insert or append transcribed speech into the message
+        // Voice Dictation: Append transcribed speech
         if (finalTranscript) {
           setMessage((prev) => {
             const trimmedPrev = prev.trim();
@@ -143,9 +138,9 @@ export default function MessageInput({
           return;
         }
         if (event.error === 'not-allowed') {
-          setVoiceError('Microphone access was denied. Please allow microphone permissions in your browser.');
+          setVoiceError('Microphone permission was denied. Please allow microphone access in your browser settings.');
         } else {
-          setVoiceError(`Voice input notice: ${event.error}`);
+          setVoiceError(`Voice notice: ${event.error}`);
         }
         setIsListening(false);
       };
@@ -167,7 +162,7 @@ export default function MessageInput({
       try {
         recognitionRef.current.stop();
       } catch (err) {
-        // Ignore stop error
+        // ignore
       }
       recognitionRef.current = null;
     }
@@ -176,11 +171,8 @@ export default function MessageInput({
   };
 
   const toggleListening = () => {
-    if (isListening) {
-      stopListening();
-    } else {
-      startListening();
-    }
+    if (isListening) stopListening();
+    else startListening();
   };
 
   useEffect(() => {
@@ -189,94 +181,121 @@ export default function MessageInput({
         try {
           recognitionRef.current.stop();
         } catch (err) {
-          // ignore cleanup error
+          // ignore
         }
       }
     };
   }, []);
 
   return (
-    <div>
+    <div className="message-input-section" id="workspace">
+      {/* Top Header with Title and Interactive Voice Command Button */}
       <div className="section-header">
         <label htmlFor="original-message" className="section-title">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-          </svg>
-          Original Message
+          <span className="section-title-badge">Input</span>
+          <span>Draft Your Message</span>
         </label>
 
+        {/* High-End Themed Voice Command Button */}
         <button
           type="button"
-          className={`btn-voice ${isListening ? 'listening' : ''}`}
+          className={`voice-command-pill ${isListening ? 'active-listening' : ''}`}
           onClick={toggleListening}
           disabled={disabled}
-          title={isListening ? 'Stop listening' : 'Dictate message by voice or speak commands'}
-          aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
+          title={isListening ? 'Stop listening' : 'Start voice command dictation'}
+          aria-label={isListening ? 'Stop voice recording' : 'Start voice recording'}
         >
-          <span className="voice-icon-wrapper">
-            {isListening ? (
-              <span className="pulse-recording-dot" aria-hidden="true"></span>
-            ) : (
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                <line x1="12" y1="19" x2="12" y2="23"></line>
-                <line x1="8" y1="23" x2="16" y2="23"></line>
-              </svg>
-            )}
-          </span>
-          <span>{isListening ? 'Stop Recording' : 'Voice Input'}</span>
+          {isListening ? (
+            <>
+              <div className="voice-equalizer" aria-hidden="true">
+                <span className="eq-bar eq-1"></span>
+                <span className="eq-bar eq-2"></span>
+                <span className="eq-bar eq-3"></span>
+                <span className="eq-bar eq-4"></span>
+              </div>
+              <span className="voice-pill-text">Recording...</span>
+            </>
+          ) : (
+            <>
+              <div className="voice-mic-icon" aria-hidden="true">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                  <line x1="12" y1="19" x2="12" y2="23"></line>
+                  <line x1="8" y1="23" x2="16" y2="23"></line>
+                </svg>
+              </div>
+              <span className="voice-pill-text">Voice Command</span>
+            </>
+          )}
         </button>
       </div>
 
+      {/* Voice Status & Interactive Command Helper */}
       {isListening && (
-        <div className="voice-banner listening" role="status">
-          <div className="voice-banner-indicator">
-            <span className="pulse-recording-dot"></span>
-            <span>{voiceStatus || 'Listening... Speak your message now.'}</span>
+        <div className="voice-active-card" role="status">
+          <div className="voice-status-indicator">
+            <span className="voice-pulse-ring"></span>
+            <span className="voice-status-text">{voiceStatus || 'Listening to your microphone...'}</span>
           </div>
-          <div className="voice-commands-hint">
-            Voice commands: <code>"Clear message"</code> • <code>"Transform message"</code>
+          <div className="voice-commands-suggestions">
+            <span className="voice-hint-label">Try saying:</span>
+            <span className="voice-command-tag">"Clear message"</span>
+            <span className="voice-command-tag">"Transform message"</span>
           </div>
         </div>
       )}
 
+      {/* Voice Error Notice */}
       {voiceError && (
-        <div className="voice-banner error" role="alert">
-          <span>{voiceError}</span>
+        <div className="voice-error-toast" role="alert">
+          <div className="voice-error-content">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span>{voiceError}</span>
+          </div>
           <button
             type="button"
-            className="voice-banner-dismiss"
+            className="voice-error-close"
             onClick={() => setVoiceError(null)}
-            aria-label="Dismiss error"
+            aria-label="Close error notice"
           >
             ✕
           </button>
         </div>
       )}
 
+      {/* Preset Test Scenarios Chips */}
       <div className="preset-container">
-        <span className="preset-label">Test Scenarios:</span>
-        {PRESET_EXAMPLES.map((preset) => (
-          <button
-            key={preset.label}
-            type="button"
-            className="preset-chip"
-            onClick={() => onApplyPreset(preset)}
-            disabled={disabled}
-          >
-            {preset.label}
-          </button>
-        ))}
+        <span className="preset-label">Quick Scenarios:</span>
+        <div className="preset-chips-scroll">
+          {PRESET_EXAMPLES.map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              className="preset-chip"
+              onClick={() => onApplyPreset(preset)}
+              disabled={disabled}
+            >
+              <span>{preset.label}</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="textarea-wrapper">
+      {/* Main Message Textarea with Glowing Focus & Audio Indicator */}
+      <div className={`textarea-wrapper ${isListening ? 'mic-active-glow' : ''}`}>
         <textarea
           id="original-message"
           ref={inputRef}
           className="message-textarea"
-          placeholder="Type or click 'Voice Input' to speak your message, or choose a test scenario..."
+          placeholder="Type or click 'Voice Command' to speak your message, or choose a quick scenario above..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           maxLength={maxLength}
@@ -284,7 +303,12 @@ export default function MessageInput({
           disabled={disabled}
         />
         <div className="textarea-footer">
-          <span>Preserves factual meaning, commitments, and uncertainty without inventing excuses.</span>
+          <span className="textarea-guarantee">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+            Factual claims, commitments & uncertainty preserved. Zero invented excuses.
+          </span>
           <span className={`char-counter ${isNearLimit ? 'warning' : ''}`}>
             {charCount.toLocaleString()} / {maxLength.toLocaleString()}
           </span>
