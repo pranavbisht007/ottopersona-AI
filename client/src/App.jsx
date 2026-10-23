@@ -7,6 +7,7 @@ import PurposeSelector from './components/PurposeSelector';
 import ToneSelector from './components/ToneSelector';
 import LengthSelector from './components/LengthSelector';
 import FormatSelector from './components/FormatSelector';
+import LanguageSelector from './components/LanguageSelector';
 import ResultPanel from './components/ResultPanel';
 import LoadingState from './components/LoadingState';
 import ErrorMessage from './components/ErrorMessage';
@@ -37,6 +38,7 @@ export default function App() {
   const [tone, setTone] = useState('Professional');
   const [length, setLength] = useState('Medium');
   const [format, setFormat] = useState('General text message');
+  const [language, setLanguage] = useState('Auto-detect');
 
   // Application flow state
   const [isLoading, setIsLoading] = useState(false);
@@ -68,6 +70,7 @@ export default function App() {
     if (preset.tone) setTone(preset.tone);
     if (preset.length) setLength(preset.length);
     if (preset.format) setFormat(preset.format);
+    if (preset.language) setLanguage(preset.language);
     setError(null);
   };
 
@@ -114,7 +117,8 @@ export default function App() {
       purpose,
       tone,
       length,
-      format
+      format,
+      language
     };
 
     try {
@@ -171,6 +175,7 @@ export default function App() {
                 inputRef={inputRef}
                 maxLength={5000}
                 disabled={isLoading || isRegenerating}
+                language={language}
                 onVoiceTransform={() => executeTransformation(false)}
                 onVoiceClear={handleClear}
               />
@@ -210,6 +215,11 @@ export default function App() {
                 <FormatSelector
                   value={format}
                   onChange={setFormat}
+                  disabled={isLoading || isRegenerating}
+                />
+                <LanguageSelector
+                  value={language}
+                  onChange={setLanguage}
                   disabled={isLoading || isRegenerating}
                 />
               </div>

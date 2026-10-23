@@ -554,6 +554,34 @@ body {
 /* ==========================================================================
    High-End Royal Violet Voice Command Button & Equalizer
    ========================================================================== */
+.voice-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-voice-lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 13px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  color: var(--text-secondary);
+  background: var(--canvas-surface-secondary);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-voice-lang:hover:not(:disabled) {
+  background: var(--accent-purple-subtle);
+  color: var(--accent-purple);
+  border-color: var(--accent-purple);
+}
+
 .voice-command-pill {
   display: inline-flex;
   align-items: center;

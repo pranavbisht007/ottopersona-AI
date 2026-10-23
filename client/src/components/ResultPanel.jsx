@@ -67,6 +67,11 @@ export default function ResultPanel({
         <span className="param-pill">
           Format: <strong>{selectedParams.format}</strong>
         </span>
+        {selectedParams.language && (
+          <span className="param-pill">
+            Language: <strong>{selectedParams.language}</strong>
+          </span>
+        )}
       </div>
 
       {/* Side-by-Side Comparison */}

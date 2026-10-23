@@ -43,6 +43,13 @@ export const ALLOWED_FORMATS = [
   'General text message'
 ];
 
+export const ALLOWED_LANGUAGES = [
+  'Auto-detect',
+  'English',
+  'Hindi',
+  'Hinglish'
+];
+
 export const MAX_MESSAGE_LENGTH = 5000;
 
 /**
@@ -71,7 +78,7 @@ export function validateTransformRequest(body) {
     };
   }
 
-  const { message, audience, purpose, tone, length, format } = body;
+  const { message, audience, purpose, tone, length, format, language } = body;
 
   // 1. Validate Message
   if (message === undefined || message === null) {
@@ -175,6 +182,18 @@ export function validateTransformRequest(body) {
     };
   }
 
+  // 7. Validate Language
+  const selectedLanguage = language || 'Auto-detect';
+  if (!ALLOWED_LANGUAGES.includes(selectedLanguage)) {
+    return {
+      isValid: false,
+      error: {
+        code: 'INVALID_LANGUAGE',
+        message: `Language must be one of: ${ALLOWED_LANGUAGES.join(', ')}.`
+      }
+    };
+  }
+
   return {
     isValid: true,
     sanitized: {
@@ -183,7 +202,8 @@ export function validateTransformRequest(body) {
       purpose: selectedPurpose,
       tone: selectedTone,
       length: selectedLength,
-      format: selectedFormat
+      format: selectedFormat,
+      language: selectedLanguage
     }
   };
 }

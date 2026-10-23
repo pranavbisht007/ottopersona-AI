@@ -8,7 +8,18 @@ const PRESET_EXAMPLES = [
     purpose: 'Request',
     tone: 'Respectful',
     length: 'Short',
-    format: 'WhatsApp message'
+    format: 'WhatsApp message',
+    language: 'English'
+  },
+  {
+    label: 'Teacher Request (हिंदी)',
+    message: 'सर, आज मैं असाइनमेंट जमा नहीं कर पाऊंगा।',
+    audience: 'Teacher',
+    purpose: 'Request',
+    tone: 'Respectful',
+    length: 'Short',
+    format: 'WhatsApp message',
+    language: 'Hindi'
   },
   {
     label: 'Job Application',
@@ -17,16 +28,28 @@ const PRESET_EXAMPLES = [
     purpose: 'Job application',
     tone: 'Professional',
     length: 'Medium',
-    format: 'Email'
+    format: 'Email',
+    language: 'English'
   },
   {
-    label: 'Friend Notes',
-    message: 'Please send me the notes.',
+    label: 'Job Application (हिंदी)',
+    message: 'मैं इस पद के लिए अपना आवेदन प्रस्तुत करना चाहता हूँ।',
+    audience: 'Recruiter',
+    purpose: 'Job application',
+    tone: 'Formal',
+    length: 'Medium',
+    format: 'Email',
+    language: 'Hindi'
+  },
+  {
+    label: 'Friend Notes (Hinglish)',
+    message: 'Bhai kal ke exam ke notes bhej de please.',
     audience: 'Friend',
     purpose: 'Request',
     tone: 'Friendly',
     length: 'Short',
-    format: 'WhatsApp message'
+    format: 'WhatsApp message',
+    language: 'Hinglish'
   },
   {
     label: 'Uncertainty Preservation',
@@ -35,7 +58,8 @@ const PRESET_EXAMPLES = [
     purpose: 'General communication',
     tone: 'Professional',
     length: 'Short',
-    format: 'Email'
+    format: 'Email',
+    language: 'English'
   },
   {
     label: 'Client Apology',
@@ -44,7 +68,8 @@ const PRESET_EXAMPLES = [
     purpose: 'Apology',
     tone: 'Empathetic',
     length: 'Medium',
-    format: 'Email'
+    format: 'Email',
+    language: 'English'
   }
 ];
 
@@ -55,13 +80,24 @@ export default function MessageInput({
   inputRef,
   maxLength = 5000,
   disabled,
+  language = 'Auto-detect',
   onVoiceTransform,
   onVoiceClear
 }) {
   const [isListening, setIsListening] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState('');
   const [voiceError, setVoiceError] = useState(null);
+  const [voiceLang, setVoiceLang] = useState('en-IN');
   const recognitionRef = useRef(null);
+
+  // Sync voiceLang with selected language if set to Hindi
+  useEffect(() => {
+    if (language === 'Hindi') {
+      setVoiceLang('hi-IN');
+    } else if (language === 'English') {
+      setVoiceLang('en-IN');
+    }
+  }, [language]);
 
   const charCount = message.length;
   const isNearLimit = charCount > maxLength * 0.9;
@@ -82,11 +118,12 @@ export default function MessageInput({
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
-      recognition.lang = 'en-US';
+      recognition.lang = voiceLang; // 'hi-IN' or 'en-IN'
 
       recognition.onstart = () => {
         setIsListening(true);
-        setVoiceStatus('Listening... Speak your draft or say "Transform message"');
+        const langName = voiceLang === 'hi-IN' ? 'Hindi (हिंदी)' : 'English / Hinglish';
+        setVoiceStatus(`Listening in ${langName}... Speak your message now.`);
       };
 
       recognition.onresult = (event) => {
@@ -104,17 +141,18 @@ export default function MessageInput({
 
         const candidateCommand = (finalTranscript || interimTranscript).trim().toLowerCase();
 
-        // Voice Command: Clear message
-        if (candidateCommand === 'clear message' || candidateCommand === 'clear input' || candidateCommand === 'reset message' || candidateCommand === 'clear') {
+        // Voice Commands in English and Hindi:
+        const clearCommands = ['clear message', 'clear input', 'reset message', 'clear', 'साफ करो', 'मैसेज साफ करो', 'हटाओ', 'डिलीट करो'];
+        if (clearCommands.some(cmd => candidateCommand.includes(cmd))) {
           if (onVoiceClear) onVoiceClear();
           else setMessage('');
-          setVoiceStatus('Voice command executed: Cleared message.');
+          setVoiceStatus('Voice command executed: Cleared message / संदेश मिटा दिया गया।');
           return;
         }
 
-        // Voice Command: Transform / Send message
-        if (candidateCommand === 'transform message' || candidateCommand === 'transform' || candidateCommand === 'submit message' || candidateCommand === 'send message') {
-          setVoiceStatus('Voice command executed: Transforming message...');
+        const transformCommands = ['transform message', 'transform', 'submit message', 'send message', 'मैसेज बदलो', 'ट्रांसफॉर्म करो', 'भेजो'];
+        if (transformCommands.some(cmd => candidateCommand.includes(cmd))) {
+          setVoiceStatus('Voice command executed: Transforming message / संदेश तैयार किया जा रहा है...');
           stopListening();
           if (onVoiceTransform) onVoiceTransform();
           return;
@@ -128,7 +166,7 @@ export default function MessageInput({
             if (!trimmedPrev) return addition;
             return `${trimmedPrev} ${addition}`;
           });
-          setVoiceStatus('Listening... Speak or say "Transform message"');
+          setVoiceStatus(`Listening in ${voiceLang === 'hi-IN' ? 'Hindi' : 'English'}... Speak or say "Transform message"`);
         }
       };
 
@@ -175,6 +213,14 @@ export default function MessageInput({
     else startListening();
   };
 
+  const toggleVoiceLanguage = () => {
+    const nextLang = voiceLang === 'hi-IN' ? 'en-IN' : 'hi-IN';
+    setVoiceLang(nextLang);
+    if (isListening) {
+      stopListening();
+    }
+  };
+
   useEffect(() => {
     return () => {
       if (recognitionRef.current) {
@@ -196,39 +242,55 @@ export default function MessageInput({
           <span>Draft Your Message</span>
         </label>
 
-        {/* High-End Themed Voice Command Button */}
-        <button
-          type="button"
-          className={`voice-command-pill ${isListening ? 'active-listening' : ''}`}
-          onClick={toggleListening}
-          disabled={disabled}
-          title={isListening ? 'Stop listening' : 'Start voice command dictation'}
-          aria-label={isListening ? 'Stop voice recording' : 'Start voice recording'}
-        >
-          {isListening ? (
-            <>
-              <div className="voice-equalizer" aria-hidden="true">
-                <span className="eq-bar eq-1"></span>
-                <span className="eq-bar eq-2"></span>
-                <span className="eq-bar eq-3"></span>
-                <span className="eq-bar eq-4"></span>
-              </div>
-              <span className="voice-pill-text">Recording...</span>
-            </>
-          ) : (
-            <>
-              <div className="voice-mic-icon" aria-hidden="true">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                  <line x1="12" y1="19" x2="12" y2="23"></line>
-                  <line x1="8" y1="23" x2="16" y2="23"></line>
-                </svg>
-              </div>
-              <span className="voice-pill-text">Voice Command</span>
-            </>
-          )}
-        </button>
+        {/* High-End Themed Voice Command Controls */}
+        <div className="voice-controls-group">
+          {/* Voice Language Toggle (English vs Hindi) */}
+          <button
+            type="button"
+            className="btn-voice-lang"
+            onClick={toggleVoiceLanguage}
+            title={`Current voice input language: ${voiceLang === 'hi-IN' ? 'Hindi (हिंदी)' : 'English / Hinglish'}. Click to toggle.`}
+            disabled={disabled}
+            aria-label="Toggle voice language"
+          >
+            <span>🌐</span>
+            <span className="voice-lang-label">{voiceLang === 'hi-IN' ? 'हिंदी (Hindi)' : 'English / Hinglish'}</span>
+          </button>
+
+          {/* Voice Command Button */}
+          <button
+            type="button"
+            className={`voice-command-pill ${isListening ? 'active-listening' : ''}`}
+            onClick={toggleListening}
+            disabled={disabled}
+            title={isListening ? 'Stop listening' : `Start voice command dictation (${voiceLang === 'hi-IN' ? 'Hindi' : 'English'})`}
+            aria-label={isListening ? 'Stop voice recording' : 'Start voice recording'}
+          >
+            {isListening ? (
+              <>
+                <div className="voice-equalizer" aria-hidden="true">
+                  <span className="eq-bar eq-1"></span>
+                  <span className="eq-bar eq-2"></span>
+                  <span className="eq-bar eq-3"></span>
+                  <span className="eq-bar eq-4"></span>
+                </div>
+                <span className="voice-pill-text">Recording ({voiceLang === 'hi-IN' ? 'हिंदी' : 'EN'})...</span>
+              </>
+            ) : (
+              <>
+                <div className="voice-mic-icon" aria-hidden="true">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    <line x1="12" y1="19" x2="12" y2="23"></line>
+                    <line x1="8" y1="23" x2="16" y2="23"></line>
+                  </svg>
+                </div>
+                <span className="voice-pill-text">Voice Command</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Voice Status & Interactive Command Helper */}
@@ -239,9 +301,9 @@ export default function MessageInput({
             <span className="voice-status-text">{voiceStatus || 'Listening to your microphone...'}</span>
           </div>
           <div className="voice-commands-suggestions">
-            <span className="voice-hint-label">Try saying:</span>
-            <span className="voice-command-tag">"Clear message"</span>
-            <span className="voice-command-tag">"Transform message"</span>
+            <span className="voice-hint-label">Voice commands:</span>
+            <span className="voice-command-tag">"Clear message" / "साफ करो"</span>
+            <span className="voice-command-tag">"Transform message" / "भेजो"</span>
           </div>
         </div>
       )}
@@ -295,7 +357,7 @@ export default function MessageInput({
           id="original-message"
           ref={inputRef}
           className="message-textarea"
-          placeholder="Type or click 'Voice Command' to speak your message, or choose a quick scenario above..."
+          placeholder="Type in English, Hindi (हिंदी), or Hinglish, or click 'Voice Command' to speak your message..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           maxLength={maxLength}
@@ -307,7 +369,7 @@ export default function MessageInput({
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
             </svg>
-            Factual claims, commitments & uncertainty preserved. Zero invented excuses.
+            Factual claims, commitments & uncertainty preserved in Hindi & English. Zero invented excuses.
           </span>
           <span className={`char-counter ${isNearLimit ? 'warning' : ''}`}>
             {charCount.toLocaleString()} / {maxLength.toLocaleString()}
