@@ -9,7 +9,7 @@ process.env.ADMIN_SECRET_KEY = 'super_secure_admin_test_token_32_bytes_long';
 process.env.GEMINI_API_KEY = 'your_gemini_api_key_here';
 
 import app from '../src/app.js';
-import { validateTransformRequest } from '../src/validators/transformValidator.js';
+import { validateTransformRequest } from '../src/blocks/transform-block/transformValidator.js';
 
 let server;
 const BASE_URL = 'http://127.0.0.1:5002';

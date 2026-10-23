@@ -1,20 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
-import Navbar from './components/Navbar';
-import Hero from './components/Hero';
-import MessageInput from './components/MessageInput';
-import AudienceSelector from './components/AudienceSelector';
-import PurposeSelector from './components/PurposeSelector';
-import ToneSelector from './components/ToneSelector';
-import LengthSelector from './components/LengthSelector';
-import FormatSelector from './components/FormatSelector';
-import LanguageSelector from './components/LanguageSelector';
-import ResultPanel from './components/ResultPanel';
-import LoadingState from './components/LoadingState';
-import ErrorMessage from './components/ErrorMessage';
-import Footer from './components/Footer';
-import PrivacyPolicyModal from './components/PrivacyPolicyModal';
-import TermsModal from './components/TermsModal';
-import AdminDiagnosticsModal from './components/AdminDiagnosticsModal';
+import Navbar from './blocks/navigation-block/Navbar';
+import Footer from './blocks/navigation-block/Footer';
+import Hero from './blocks/hero-block/Hero';
+import MessageInput from './blocks/input-block/MessageInput';
+import AudienceSelector from './blocks/selectors-block/AudienceSelector';
+import PurposeSelector from './blocks/selectors-block/PurposeSelector';
+import ToneSelector from './blocks/selectors-block/ToneSelector';
+import LengthSelector from './blocks/selectors-block/LengthSelector';
+import FormatSelector from './blocks/selectors-block/FormatSelector';
+import LanguageSelector from './blocks/selectors-block/LanguageSelector';
+import ResultPanel from './blocks/results-block/ResultPanel';
+import LoadingState from './blocks/feedback-block/LoadingState';
+import ErrorMessage from './blocks/feedback-block/ErrorMessage';
+import PrivacyPolicyModal from './blocks/modals-block/PrivacyPolicyModal';
+import TermsModal from './blocks/modals-block/TermsModal';
+import AdminDiagnosticsModal from './blocks/modals-block/AdminDiagnosticsModal';
 
 export default function App() {
   // Theme state

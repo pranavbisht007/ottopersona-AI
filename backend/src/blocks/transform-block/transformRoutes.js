@@ -1,7 +1,7 @@
 import express from 'express';
-import { validateTransformRequest } from '../validators/transformValidator.js';
-import { transformMessage } from '../services/aiService.js';
-import { transformLimiter } from '../middleware/rateLimiter.js';
+import { validateTransformRequest } from './transformValidator.js';
+import { transformMessage } from '../ai-block/aiService.js';
+import { transformLimiter } from '../security-block/rateLimiterMiddleware.js';
 
 const router = express.Router();
 

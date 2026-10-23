@@ -5,11 +5,11 @@ import helmet from 'helmet';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
-import healthRoutes from './routes/health.js';
-import transformRoutes from './routes/transform.js';
-import adminRoutes from './routes/admin.js';
-import { generalLimiter } from './middleware/rateLimiter.js';
-import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import healthRoutes from './blocks/diagnostics-block/healthRoutes.js';
+import transformRoutes from './blocks/transform-block/transformRoutes.js';
+import adminRoutes from './blocks/diagnostics-block/adminRoutes.js';
+import { generalLimiter } from './blocks/security-block/rateLimiterMiddleware.js';
+import { errorHandler, notFoundHandler } from './blocks/security-block/errorHandlerMiddleware.js';
 
 const app = express();
 
@@ -70,13 +70,13 @@ app.use('/api/health', healthRoutes);
 app.use('/api/transform', transformRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Optional unified production hosting: serve client build if available
-const clientDistPath = path.resolve(__dirname, '../../client/dist');
-if (fs.existsSync(clientDistPath)) {
-  app.use(express.static(clientDistPath));
+// Optional unified production hosting: serve frontend build if available
+const frontendDistPath = path.resolve(__dirname, '../../frontend/dist');
+if (fs.existsSync(frontendDistPath)) {
+  app.use(express.static(frontendDistPath));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api')) return next();
-    res.sendFile(path.join(clientDistPath, 'index.html'));
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
   });
 }
 

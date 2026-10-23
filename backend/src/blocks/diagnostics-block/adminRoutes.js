@@ -1,6 +1,6 @@
 import express from 'express';
-import { requireAdminAuth, verifyPassword } from '../middleware/auth.js';
-import { authLimiter } from '../middleware/rateLimiter.js';
+import { requireAdminAuth, verifyPassword } from '../auth-block/authMiddleware.js';
+import { authLimiter } from '../security-block/rateLimiterMiddleware.js';
 
 const router = express.Router();
 
