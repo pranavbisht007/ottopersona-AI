@@ -35,6 +35,46 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
 
+// // 2. CORS Configuration
+// const defaultOrigins = [
+//   'http://localhost:5173',
+//   'http://localhost:5174',
+//   'http://localhost:5175',
+//   'http://localhost:3000',
+//   'http://localhost:4173',
+//   'http://localhost:5000',
+//   'http://127.0.0.1:5173',
+//   'http://127.0.0.1:5174',
+//   'http://127.0.0.1:5175',
+//   'http://127.0.0.1:3000',
+//   'http://127.0.0.1:4173',
+//   'http://127.0.0.1:5000'
+// ];
+// const envOrigins = (process.env.CLIENT_ORIGIN || '')
+//   .split(',')
+//   .map(o => o.trim())
+//   .filter(Boolean);
+
+// const allowedOrigins = Array.from(new Set([...defaultOrigins, ...envOrigins]));
+
+// const isLocalOrigin = (origin) => {
+//   return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+// };
+
+// app.use(cors({
+//   origin: (origin, callback) => {
+//     // Allow non-browser requests (e.g. curl, unit tests, mobile native) with no origin
+//     if (!origin) return callback(null, true);
+//     if (isLocalOrigin(origin) || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+//       return callback(null, true);
+//     }
+//     return callback(new Error(`Origin ${origin} not allowed by CORS.`));
+//   },
+//   methods: ['GET', 'POST', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization'],
+//   credentials: true,
+//   maxAge: 86400 // 24 hours preflight cache
+// }));
 // 2. CORS Configuration
 const defaultOrigins = [
   'http://localhost:5173',
@@ -63,8 +103,15 @@ const isLocalOrigin = (origin) => {
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow non-browser requests (e.g. curl, unit tests, mobile native) with no origin
+    // Allow non-browser requests (curl, Postman, tests)
     if (!origin) return callback(null, true);
+
+    // Development / test → allow ANY origin (LAN IP, phone, tunnel, etc.)
+    if (process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+
+    // Production → strict allow-list
     if (isLocalOrigin(origin) || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
       return callback(null, true);
     }
@@ -73,9 +120,8 @@ app.use(cors({
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
-  maxAge: 86400 // 24 hours preflight cache
+  maxAge: 86400
 }));
-
 // 3. Request Size Limit (Protect against large payload attacks)
 app.use(express.json({ limit: '50kb' }));
 
