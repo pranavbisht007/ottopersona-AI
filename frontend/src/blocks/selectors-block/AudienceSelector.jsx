@@ -6,7 +6,9 @@ const AUDIENCES = [
   'Friend',
   'Recruiter',
   'Manager',
-  'Client'
+  'Client',
+  'Colleague',
+  'HR / Recruiter'
 ];
 
 export default function AudienceSelector({ value, onChange, disabled }) {

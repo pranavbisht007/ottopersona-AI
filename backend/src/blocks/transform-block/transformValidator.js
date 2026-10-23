@@ -8,6 +8,8 @@ export const ALLOWED_AUDIENCES = [
   'Recruiter',
   'Manager',
   'Client',
+  'Colleague',
+  'HR / Recruiter',
   'General audience'
 ];
 
@@ -40,7 +42,8 @@ export const ALLOWED_LENGTHS = [
 export const ALLOWED_FORMATS = [
   'Email',
   'WhatsApp message',
-  'General text message'
+  'General text message',
+  'Slack message'
 ];
 
 export const ALLOWED_LANGUAGES = [
@@ -123,7 +126,9 @@ export function validateTransformRequest(body) {
   }
 
   // 2. Validate Audience
-  const selectedAudience = audience || 'General audience';
+  let selectedAudience = audience || 'General audience';
+  if (selectedAudience === 'HR') selectedAudience = 'HR / Recruiter';
+  if (selectedAudience === 'Professor') selectedAudience = 'Teacher';
   if (!ALLOWED_AUDIENCES.includes(selectedAudience)) {
     return {
       isValid: false,

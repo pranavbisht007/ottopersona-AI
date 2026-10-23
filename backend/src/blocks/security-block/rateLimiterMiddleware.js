@@ -18,11 +18,11 @@ export const generalLimiter = rateLimit({
 });
 
 /**
- * Strict limiter for AI transformation endpoint (30 requests per 15 minutes per IP)
+ * Limiter for AI transformation endpoint (relaxed in development for testing)
  */
 export const transformLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 30,
+  max: process.env.NODE_ENV === 'development' ? 300 : (process.env.NODE_ENV === 'test' ? 1000 : 60),
   standardHeaders: true,
   legacyHeaders: false,
   message: {

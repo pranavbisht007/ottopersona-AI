@@ -151,10 +151,21 @@ export default function App() {
         }
       }
 
-      const data = await response.json();
+      let data;
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        const err = new Error(text || `Server returned status ${response.status}`);
+        err.code = `SERVER_ERROR_${response.status}`;
+        throw err;
+      }
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error?.message || 'Failed to transform message.');
+        const err = new Error(data.error?.message || 'Failed to transform message.');
+        err.code = data.error?.code || 'TRANSFORMATION_ERROR';
+        throw err;
       }
 
       setResultData(data.data);
