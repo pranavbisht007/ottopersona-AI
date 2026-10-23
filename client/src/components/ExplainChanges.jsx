@@ -31,3 +31,4 @@ export default function ExplainChanges({ explanation, improvements = [] }) {
     </div>
   );
 }
+

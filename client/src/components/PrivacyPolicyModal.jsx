@@ -84,3 +84,4 @@ export default function PrivacyPolicyModal({ isOpen, onClose }) {
     </div>
   );
 }
+

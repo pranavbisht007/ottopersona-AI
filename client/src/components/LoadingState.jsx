@@ -11,3 +11,4 @@ export default function LoadingState({ statusText = 'Analyzing context and craft
     </div>
   );
 }
+

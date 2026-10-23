@@ -68,3 +68,4 @@ export async function hashPassword(plainPassword) {
 export async function verifyPassword(plainPassword, hashedPassword) {
   return bcrypt.compare(plainPassword, hashedPassword);
 }
+

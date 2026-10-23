@@ -424,3 +424,4 @@ npm test
 ## 17. License
 
 MIT License. Built for ethical, accessible, and context-aware communication.
+
