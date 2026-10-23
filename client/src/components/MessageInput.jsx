@@ -1,7 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 
+const CATEGORIES = ['All', '💼 Work', '🎓 College', '🤝 Personal', '🇮🇳 हिंदी'];
+
 const PRESET_EXAMPLES = [
   {
+    category: '🎓 College',
     label: 'Teacher Request',
     message: 'Sir, I cannot submit the assignment today.',
     audience: 'Teacher',
@@ -12,8 +15,9 @@ const PRESET_EXAMPLES = [
     language: 'English'
   },
   {
-    label: 'Teacher Request (हिंदी)',
-    message: 'सर, आज मैं असाइनमेंट जमा नहीं कर पाऊंगा।',
+    category: '🇮🇳 हिंदी',
+    label: 'छुट्टी का आवेदन (Leave)',
+    message: 'आदरणीय महोदय, अस्वस्थ होने के कारण मैं आज उपस्थित नहीं हो सकूँगा। कृपया मुझे अवकाश प्रदान करें।',
     audience: 'Teacher',
     purpose: 'Request',
     tone: 'Respectful',
@@ -22,8 +26,9 @@ const PRESET_EXAMPLES = [
     language: 'Hindi'
   },
   {
+    category: '💼 Work',
     label: 'Job Application',
-    message: 'I want to apply for this job.',
+    message: 'I want to apply for this job. Attached is my resume for your consideration.',
     audience: 'Recruiter',
     purpose: 'Job application',
     tone: 'Professional',
@@ -32,16 +37,40 @@ const PRESET_EXAMPLES = [
     language: 'English'
   },
   {
-    label: 'Job Application (हिंदी)',
-    message: 'मैं इस पद के लिए अपना आवेदन प्रस्तुत करना चाहता हूँ।',
-    audience: 'Recruiter',
-    purpose: 'Job application',
-    tone: 'Formal',
-    length: 'Medium',
+    category: '💼 Work',
+    label: 'Meeting Reschedule',
+    message: 'Could we reschedule our meeting? An urgent conflict came up on my calendar.',
+    audience: 'Manager',
+    purpose: 'Request',
+    tone: 'Respectful',
+    length: 'Short',
     format: 'Email',
+    language: 'English'
+  },
+  {
+    category: '💼 Work',
+    label: 'Project Follow-up',
+    message: 'Following up on the document I sent last week. Have you had a chance to review it?',
+    audience: 'Client',
+    purpose: 'Follow-up',
+    tone: 'Professional',
+    length: 'Short',
+    format: 'Email',
+    language: 'English'
+  },
+  {
+    category: '🇮🇳 हिंदी',
+    label: 'असाइनमेंट छूट (Hindi)',
+    message: 'सर, आज मैं असाइनमेंट जमा नहीं कर पाऊंगा। क्या मुझे कल तक का समय मिल सकता है?',
+    audience: 'Teacher',
+    purpose: 'Request',
+    tone: 'Respectful',
+    length: 'Short',
+    format: 'WhatsApp message',
     language: 'Hindi'
   },
   {
+    category: '🤝 Personal',
     label: 'Friend Notes (Hinglish)',
     message: 'Bhai kal ke exam ke notes bhej de please.',
     audience: 'Friend',
@@ -52,8 +81,9 @@ const PRESET_EXAMPLES = [
     language: 'Hinglish'
   },
   {
+    category: '💼 Work',
     label: 'Uncertainty Preservation',
-    message: 'I may be able to attend the meeting.',
+    message: 'I may be able to attend the meeting tomorrow, but it depends on the client call.',
     audience: 'Manager',
     purpose: 'General communication',
     tone: 'Professional',
@@ -62,14 +92,26 @@ const PRESET_EXAMPLES = [
     language: 'English'
   },
   {
-    label: 'Client Apology',
-    message: 'Sorry for replying late, I was busy.',
-    audience: 'Client',
+    category: '🤝 Personal',
+    label: 'Casual Apology',
+    message: 'Sorry for replying late, my phone was on silent.',
+    audience: 'Friend',
     purpose: 'Apology',
-    tone: 'Empathetic',
-    length: 'Medium',
-    format: 'Email',
+    tone: 'Friendly',
+    length: 'Short',
+    format: 'WhatsApp message',
     language: 'English'
+  },
+  {
+    category: '🇮🇳 हिंदी',
+    label: 'कार्य अपडेट (Work Hindi)',
+    message: 'नमस्ते सर, मैंने आज की रिपोर्ट पूरी कर ली है और समीक्षा के लिए भेज दी है।',
+    audience: 'Manager',
+    purpose: 'General communication',
+    tone: 'Respectful',
+    length: 'Short',
+    format: 'Email',
+    language: 'Hindi'
   }
 ];
 
@@ -84,10 +126,12 @@ export default function MessageInput({
   onVoiceTransform,
   onVoiceClear
 }) {
+  const [activeCategory, setActiveCategory] = useState('All');
   const [isListening, setIsListening] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState('');
   const [voiceError, setVoiceError] = useState(null);
   const [voiceLang, setVoiceLang] = useState('en-IN');
+  const [clipboardNotice, setClipboardNotice] = useState('');
   const recognitionRef = useRef(null);
 
   // Sync voiceLang with selected language if set to Hindi
@@ -102,7 +146,76 @@ export default function MessageInput({
   const charCount = message.length;
   const isNearLimit = charCount > maxLength * 0.9;
 
-  // Web Speech API availability check
+  // Filter presets by active category
+  const filteredPresets = activeCategory === 'All'
+    ? PRESET_EXAMPLES
+    : PRESET_EXAMPLES.filter(p => p.category === activeCategory);
+
+  // Quick Text Helpers
+  const handlePaste = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          setMessage((prev) => (prev ? `${prev.trim()}\n${text.trim()}` : text.trim()));
+          setClipboardNotice('Pasted from clipboard!');
+          setTimeout(() => setClipboardNotice(''), 2000);
+        }
+      } else {
+        alert('Please use Ctrl+V to paste your message.');
+      }
+    } catch (err) {
+      setClipboardNotice('Could not access clipboard automatically. Please press Ctrl+V.');
+      setTimeout(() => setClipboardNotice(''), 3000);
+    }
+  };
+
+  const handleAddGreeting = () => {
+    const greeting = language === 'Hindi'
+      ? 'आदरणीय महोदय,\n\n'
+      : language === 'Hinglish'
+      ? 'Respected Sir,\n\n'
+      : 'Dear Sir/Madam,\n\n';
+    setMessage((prev) => {
+      const trimmed = prev.trim();
+      return trimmed ? `${greeting}${trimmed}` : greeting;
+    });
+    if (inputRef.current) inputRef.current.focus();
+  };
+
+  const handleAddClosing = () => {
+    const closing = language === 'Hindi'
+      ? '\n\nधन्यवाद एवं सादर प्रणाम।'
+      : '\n\nThank you for your time and understanding.\nWarm regards,';
+    setMessage((prev) => `${prev.trim()}${closing}`);
+    if (inputRef.current) inputRef.current.focus();
+  };
+
+  const handleFormatText = () => {
+    setMessage((prev) => {
+      if (!prev) return '';
+      // Clean multiple spaces and excessive blank lines
+      let formatted = prev.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+      // Capitalize first character
+      if (formatted.length > 0) {
+        formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+      }
+      return formatted;
+    });
+    setClipboardNotice('Formatted text spacing & capitalization!');
+    setTimeout(() => setClipboardNotice(''), 2000);
+  };
+
+  const handleInsertPhrase = (phrase) => {
+    setMessage((prev) => {
+      const trimmed = prev.trim();
+      if (!trimmed) return phrase;
+      return `${trimmed} ${phrase}`;
+    });
+    if (inputRef.current) inputRef.current.focus();
+  };
+
+  // Web Speech API
   const isSpeechSupported = typeof window !== 'undefined' && Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
 
   const startListening = () => {
@@ -118,7 +231,7 @@ export default function MessageInput({
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
-      recognition.lang = voiceLang; // 'hi-IN' or 'en-IN'
+      recognition.lang = voiceLang;
 
       recognition.onstart = () => {
         setIsListening(true);
@@ -141,7 +254,7 @@ export default function MessageInput({
 
         const candidateCommand = (finalTranscript || interimTranscript).trim().toLowerCase();
 
-        // Voice Commands in English and Hindi:
+        // Voice Commands
         const clearCommands = ['clear message', 'clear input', 'reset message', 'clear', 'साफ करो', 'मैसेज साफ करो', 'हटाओ', 'डिलीट करो'];
         if (clearCommands.some(cmd => candidateCommand.includes(cmd))) {
           if (onVoiceClear) onVoiceClear();
@@ -158,7 +271,7 @@ export default function MessageInput({
           return;
         }
 
-        // Voice Dictation: Append transcribed speech
+        // Voice Dictation
         if (finalTranscript) {
           setMessage((prev) => {
             const trimmedPrev = prev.trim();
@@ -235,16 +348,16 @@ export default function MessageInput({
 
   return (
     <div className="message-input-section" id="workspace">
-      {/* Top Header with Title and Interactive Voice Command Button */}
+      {/* Top Header with Title and Voice Controls */}
       <div className="section-header">
         <label htmlFor="original-message" className="section-title">
           <span className="section-title-badge">Input</span>
           <span>Draft Your Message</span>
         </label>
 
-        {/* High-End Themed Voice Command Controls */}
+        {/* Themed Voice Command Controls */}
         <div className="voice-controls-group">
-          {/* Voice Language Toggle (English vs Hindi) */}
+          {/* Language Toggle */}
           <button
             type="button"
             className="btn-voice-lang"
@@ -293,7 +406,7 @@ export default function MessageInput({
         </div>
       </div>
 
-      {/* Voice Status & Interactive Command Helper */}
+      {/* Voice Status & Command Helper */}
       {isListening && (
         <div className="voice-active-card" role="status">
           <div className="voice-status-indicator">
@@ -330,11 +443,25 @@ export default function MessageInput({
         </div>
       )}
 
-      {/* Preset Test Scenarios Chips */}
+      {/* Category Filter Tabs for Quick Scenarios */}
+      <div className="scenario-categories-strip">
+        {CATEGORIES.map((cat) => (
+          <button
+            key={cat}
+            type="button"
+            className={`cat-tab-btn ${activeCategory === cat ? 'active' : ''}`}
+            onClick={() => setActiveCategory(cat)}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      {/* Scenario Text Buttons */}
       <div className="preset-container">
-        <span className="preset-label">Quick Scenarios:</span>
+        <span className="preset-label">Templates:</span>
         <div className="preset-chips-scroll">
-          {PRESET_EXAMPLES.map((preset) => (
+          {filteredPresets.map((preset) => (
             <button
               key={preset.label}
               type="button"
@@ -351,13 +478,125 @@ export default function MessageInput({
         </div>
       </div>
 
-      {/* Main Message Textarea with Glowing Focus & Audio Indicator */}
-      <div className={`textarea-wrapper ${isListening ? 'mic-active-glow' : ''}`}>
+      {/* Dedicated Smart Text Action Toolbar */}
+      <div className="smart-text-toolbar" role="toolbar" aria-label="Text Formatting Tools">
+        <div className="smart-text-actions-left">
+          {/* Paste Button */}
+          <button
+            type="button"
+            className="smart-text-btn"
+            onClick={handlePaste}
+            title="Paste text from clipboard"
+            disabled={disabled}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+            </svg>
+            <span>Paste</span>
+          </button>
+
+          {/* Add Greeting Button */}
+          <button
+            type="button"
+            className="smart-text-btn"
+            onClick={handleAddGreeting}
+            title="Insert a polite salutation at the start"
+            disabled={disabled}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14M5 12h14"></path>
+            </svg>
+            <span>+ Greeting</span>
+          </button>
+
+          {/* Add Closing Button */}
+          <button
+            type="button"
+            className="smart-text-btn"
+            onClick={handleAddClosing}
+            title="Insert a respectful sign-off and signature"
+            disabled={disabled || !message.trim()}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14M5 12h14"></path>
+            </svg>
+            <span>+ Closing</span>
+          </button>
+
+          {/* Format / Clean Spacing Button */}
+          <button
+            type="button"
+            className="smart-text-btn"
+            onClick={handleFormatText}
+            title="Clean redundant spaces and normalize punctuation"
+            disabled={disabled || !message.trim()}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="4 7 4 4 20 4 20 7"></polyline>
+              <line x1="9" y1="20" x2="15" y2="20"></line>
+              <line x1="12" y1="4" x2="12" y2="20"></line>
+            </svg>
+            <span>Format</span>
+          </button>
+
+          {/* Clear Button */}
+          <button
+            type="button"
+            className="smart-text-btn"
+            onClick={() => setMessage('')}
+            title="Clear current text"
+            disabled={disabled || !message}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+            <span>Clear</span>
+          </button>
+        </div>
+
+        {/* Quick Phrase Insertion Pills */}
+        <div className="smart-text-actions-right">
+          <button
+            type="button"
+            className="smart-phrase-btn"
+            onClick={() => handleInsertPhrase('Please let me know if you need any additional information.')}
+            disabled={disabled}
+            title="Click to insert phrase"
+          >
+            + "Please let me know"
+          </button>
+          <button
+            type="button"
+            className="smart-phrase-btn"
+            onClick={() => handleInsertPhrase('At your earliest convenience.')}
+            disabled={disabled}
+            title="Click to insert phrase"
+          >
+            + "At your earliest convenience"
+          </button>
+          {language === 'Hindi' && (
+            <button
+              type="button"
+              className="smart-phrase-btn"
+              onClick={() => handleInsertPhrase('कृपया इस विषय पर संज्ञान लें।')}
+              disabled={disabled}
+              title="Click to insert phrase"
+            >
+              + "कृपया संज्ञान लें"
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Main Message Textarea with Connected Toolbar */}
+      <div className={`textarea-wrapper has-toolbar ${isListening ? 'mic-active-glow' : ''}`}>
         <textarea
           id="original-message"
           ref={inputRef}
           className="message-textarea"
-          placeholder="Type in English, Hindi (हिंदी), or Hinglish, or click 'Voice Command' to speak your message..."
+          placeholder="Type in English, Hindi (हिंदी), or Hinglish, use the quick text buttons above, or click 'Voice Command' to speak..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           maxLength={maxLength}
@@ -366,10 +605,16 @@ export default function MessageInput({
         />
         <div className="textarea-footer">
           <span className="textarea-guarantee">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-            </svg>
-            Factual claims, commitments & uncertainty preserved in Hindi & English. Zero invented excuses.
+            {clipboardNotice ? (
+              <span style={{ color: 'var(--accent-purple)', fontWeight: 700 }}>✓ {clipboardNotice}</span>
+            ) : (
+              <>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                Factual claims, commitments & uncertainty preserved. Zero invented excuses.
+              </>
+            )}
           </span>
           <span className={`char-counter ${isNearLimit ? 'warning' : ''}`}>
             {charCount.toLocaleString()} / {maxLength.toLocaleString()}
